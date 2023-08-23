@@ -5,7 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"views"
+
+	"github.com/v-grabko1999/views"
 )
 
 func TestNew(t *testing.T) {

@@ -1,4 +1,4 @@
-module views
+module github.com/v-grabko1999/views
 
 go 1.21
 
