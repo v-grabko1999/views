@@ -5,15 +5,11 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"log"
 
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/tdewolff/minify/v2"
-	"github.com/tdewolff/minify/v2/html"
 )
 
 var extendsRegex *regexp.Regexp
@@ -23,6 +19,7 @@ var extendsRegex *regexp.Regexp
 type tpl struct {
 	shared    *template.Template
 	templates map[string]*template.Template
+	log       LogFunc
 }
 
 type templatefile struct {
@@ -39,11 +36,12 @@ func init() {
 }
 
 // New allocates a new, empty, template map
-func now() *tpl {
+func now(log LogFunc) *tpl {
 	shared := template.New("")
 	return &tpl{
 		shared:    shared,
 		templates: make(map[string]*template.Template),
+		log:       log,
 	}
 }
 
@@ -92,7 +90,7 @@ func (x *tpl) ExecuteTemplate(wr io.Writer, name string, data interface{}) error
 // Default extensions are .html and .tmpl
 // If a template file has {{/* extends "other-file.tmpl" */}} as its first line it will parse that file for base templates.
 // Parsed templates are named relative to the given root directory
-func (x *tpl) ParseDir(root string, extensions []string, compress, dev bool) error {
+func (x *tpl) ParseDir(root string, extensions []string, dev bool) error {
 	var b []byte
 	var err error
 
@@ -101,23 +99,12 @@ func (x *tpl) ParseDir(root string, extensions []string, compress, dev bool) err
 		return err
 	}
 
-	m := minify.New()
-	m.AddFunc("text/html", html.Minify)
-
 	// parse all non-child templates into the shared template namespace
 	for name, tf := range files {
 		if tf.layout != "" {
 			continue
 		}
-		if compress {
-			if dev {
-				log.Println("views html compress: ", name)
-			}
-			tf.contents, err = m.Bytes("text/html", tf.contents)
-			if err != nil {
-				return err
-			}
-		}
+
 		_, err = x.shared.New(name).Parse(string(tf.contents))
 		if err != nil {
 			return err
@@ -151,15 +138,6 @@ func (x *tpl) ParseDir(root string, extensions []string, compress, dev bool) err
 		// parse template files in reverse order (because childs should override parents)
 		for j := len(templateFiles) - 1; j >= 0; j-- {
 			b = files[templateFiles[j]].contents
-			if compress {
-				if dev {
-					log.Println("views html compress: ", templateFiles[j])
-				}
-				b, err = m.Bytes("text/html", b)
-				if err != nil {
-					return err
-				}
-			}
 			_, err = tmpl.Parse(string(b))
 			if err != nil {
 				return err

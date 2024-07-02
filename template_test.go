@@ -2,6 +2,7 @@ package views
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"strings"
 	"sync"
@@ -11,11 +12,15 @@ import (
 var x *tpl
 var once sync.Once
 
+func logFunc(str string) {
+	fmt.Println(str)
+}
+
 func setup() {
-	x = now().Delims("{{", "}}").Funcs(template.FuncMap{
+	x = now(logFunc).Delims("{{", "}}").Funcs(template.FuncMap{
 		"tolower": strings.ToLower,
 	})
-	err := x.ParseDir("examples", []string{".tmpl"}, false, false)
+	err := x.ParseDir("examples", []string{".tmpl"}, false)
 	if err != nil {
 		panic(err)
 	}
@@ -102,10 +107,10 @@ func BenchmarkExtemplateGetLayoutForTemplate(b *testing.B) {
 }
 
 func BenchmarkExtemplateParseDir(b *testing.B) {
-	x := now().Funcs(template.FuncMap{
+	x := now(logFunc).Funcs(template.FuncMap{
 		"foo": strings.ToLower,
 	})
 	for i := 0; i < b.N; i++ {
-		x.ParseDir("examples", []string{".tmpl"}, false, false)
+		x.ParseDir("examples", []string{".tmpl"}, false)
 	}
 }

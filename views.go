@@ -1,11 +1,15 @@
 package views
 
 import (
+	"errors"
 	"html/template"
 	"io"
-	"log"
+	"regexp"
 	"sync"
 
+	"github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2/html"
+	"github.com/tdewolff/minify/v2/js"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -25,10 +29,24 @@ type Config struct {
 	//true  - parses templates every time
 	//false - parses templates once at the very beginning
 	Dev bool
+
+	Log              LogFunc
+	VersionFilePatch string
+	VersionSize      int
 }
 
+type LogFunc func(string)
+
 func New(cfg Config) *Views {
-	return &Views{cfg.Dir, cfg.Extensions, cfg.Dev, cfg.Compress, now(), &sync.RWMutex{}, funcMap(&cfg)}
+	m := minify.New()
+	m.AddFunc("text/html", html.Minify)
+	m.Add("text/html", &html.Minifier{})
+	m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
+	m.Add("application/javascript", &js.Minifier{
+		KeepVarNames: true,
+	})
+
+	return &Views{cfg.Dir, cfg.Extensions, cfg.Dev, cfg.Compress, now(cfg.Log), &sync.RWMutex{}, funcMap(&cfg), cfg.Log, m}
 }
 
 type Views struct {
@@ -39,16 +57,18 @@ type Views struct {
 	ex           *tpl
 	m            *sync.RWMutex
 	cacheFuncMap template.FuncMap
+	log          LogFunc
+	min          *minify.M
 }
 
 func (v *Views) Load() error {
 	v.m.Lock()
 	defer v.m.Unlock()
 
-	n := now()
+	n := now(v.log)
 	n.Funcs(v.cacheFuncMap)
 
-	if err := n.ParseDir(v.root, v.extensions, v.compressHtml, v.dev); err != nil {
+	if err := n.ParseDir(v.root, v.extensions, v.dev); err != nil {
 		return err
 	}
 
@@ -61,7 +81,7 @@ var exGroup singleflight.Group
 func (v *Views) Execute(wr io.Writer, name string, data interface{}) error {
 	if v.dev {
 		_, err, _ := exGroup.Do("load", func() (interface{}, error) {
-			log.Println("views mode dev, reload views.")
+			v.log("views mode dev, reload views.")
 			return nil, v.Load()
 		})
 
@@ -69,18 +89,26 @@ func (v *Views) Execute(wr io.Writer, name string, data interface{}) error {
 			return err
 		}
 	}
-	return v.ex.ExecuteTemplate(wr, name, data)
+
+	if v.compressHtml {
+		cl := v.min.Writer("text/html", wr)
+		defer cl.Close()
+		return v.ex.ExecuteTemplate(cl, name, data)
+	} else {
+		return v.ex.ExecuteTemplate(wr, name, data)
+	}
 }
 
-func (v *Views) Func(fn template.FuncMap) {
+func (v *Views) Func(fn template.FuncMap) error {
 	v.m.Lock()
 	defer v.m.Unlock()
 
 	for k, val := range fn {
 		_, ok := v.cacheFuncMap[k]
 		if ok {
-			panic("Views: Функция `" + k + "` уже обьявлена")
+			return errors.New("Views: the " + k + " function is already registered")
 		}
 		v.cacheFuncMap[k] = val
 	}
+	return nil
 }
