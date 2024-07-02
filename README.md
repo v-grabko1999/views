@@ -2,16 +2,21 @@
 
 ```Go
 
-    v := views.New(views.Config{
+   v := views.New(views.Config{
 		Dir:        "./examples",
 		Extensions: []string{".tmpl"},
 		Compress:   true,
 		Dev:        false,
+
+		VersionFilePatch: "./examples/version.txt",
+		VersionSize:      12,
+
+		Log: func(str string) {
+			log.Println(str)
+		},
 	})
 
-	v.Func(template.FuncMap{
-		"tolower": strings.ToLower,
-	})
+	
 
 	if err := v.Load(); err != nil {
 		log.Fatalln("views load", err)
@@ -26,6 +31,6 @@
 
 ```code
 PASS
-coverage: 83.8% of statements
+coverage:  79.7% of statements
 ok      views   0.279s
 ```

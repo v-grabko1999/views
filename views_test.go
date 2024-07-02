@@ -1,13 +1,13 @@
 package views_test
 
 import (
-	"fmt"
 	"html/template"
+	"log"
 	"os"
 	"strings"
 	"testing"
 
-	"application/core/views"
+	"github.com/v-grabko1999/views"
 )
 
 func TestNew(t *testing.T) {
@@ -16,8 +16,12 @@ func TestNew(t *testing.T) {
 		Extensions: []string{".tmpl"},
 		Compress:   true,
 		Dev:        false,
+
+		VersionFilePatch: "./examples/version.txt",
+		VersionSize:      12,
+
 		Log: func(str string) {
-			fmt.Println(str)
+			log.Println(str)
 		},
 	})
 
