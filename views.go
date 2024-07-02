@@ -4,6 +4,8 @@ import (
 	"errors"
 	"html/template"
 	"io"
+	"log"
+	"os"
 	"regexp"
 	"sync"
 
@@ -38,6 +40,21 @@ type Config struct {
 type LogFunc func(string)
 
 func New(cfg Config) *Views {
+	if cfg.Log == nil {
+		cfg.Log = func(str string) {
+			log.Println(str)
+		}
+	}
+
+	if len(cfg.VersionFilePatch) == 0 {
+		cfg.VersionSize = 8
+		cfg.VersionFilePatch = os.TempDir() + "./golang.views.tml.version.txt"
+	}
+
+	if cfg.VersionSize < 1 {
+		cfg.VersionSize = 4
+	}
+
 	m := minify.New()
 	m.AddFunc("text/html", html.Minify)
 	m.Add("text/html", &html.Minifier{})

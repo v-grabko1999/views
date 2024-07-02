@@ -2,7 +2,6 @@ package views_test
 
 import (
 	"html/template"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -17,12 +16,12 @@ func TestNew(t *testing.T) {
 		Compress:   true,
 		Dev:        false,
 
-		VersionFilePatch: "./examples/version.txt",
-		VersionSize:      12,
+		//VersionFilePatch: "./examples/version.txt",
+		//VersionSize:      12,
 
-		Log: func(str string) {
-			log.Println(str)
-		},
+		//Log: func(str string) {
+		//	log.Println(str)
+		//},
 	})
 
 	v.Func(template.FuncMap{
