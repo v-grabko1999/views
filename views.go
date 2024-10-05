@@ -59,7 +59,7 @@ func New(cfg Config) *Views {
 	m.AddFunc("text/html", html.Minify)
 	m.Add("text/html", &html.Minifier{})
 	m.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
-	m.Add("application/javascript", &js.Minifier{
+	m.Add("form57/javascript", &js.Minifier{
 		KeepVarNames: true,
 	})
 

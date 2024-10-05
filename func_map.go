@@ -6,15 +6,21 @@ import (
 	"os"
 	"strings"
 
+	"github.com/greatcloak/decimal"
 	"github.com/thanhpk/randstr"
 )
 
 func funcMap(cfg *Config) template.FuncMap {
 	cFuncMap := map[string]interface{}{
-		"to_lower":   strings.ToLower,
-		"to_upper":   strings.ToUpper,
-		"trim_space": strings.TrimSpace,
-		"rand_str":   randstr.Hex,
+		"to_lower":                   strings.ToLower,
+		"to_upper":                   strings.ToUpper,
+		"trim_space":                 strings.TrimSpace,
+		"rand_str":                   randstr.Hex,
+		"multiplication_decimal":     MultiplicationDecimal,
+		"multiplication_decimal_fix": MultiplicationDecimalFix,
+		"is_dev": func() bool {
+			return cfg.Dev
+		},
 	}
 
 	if cfg.Dev {
@@ -30,6 +36,14 @@ func funcMap(cfg *Config) template.FuncMap {
 	}
 
 	return cFuncMap
+}
+
+func MultiplicationDecimal(n1, n2 string) string {
+	return decimal.RequireFromString(n1).Mul(decimal.RequireFromString(n2)).String()
+}
+
+func MultiplicationDecimalFix(fix int32, n1, n2 string) string {
+	return decimal.RequireFromString(n1).Mul(decimal.RequireFromString(n2)).StringFixedBank(fix)
 }
 
 func getVersionApp(cfg *Config) (versionApp string) {
