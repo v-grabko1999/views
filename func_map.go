@@ -12,12 +12,19 @@ import (
 
 func funcMap(cfg *Config) template.FuncMap {
 	cFuncMap := map[string]interface{}{
-		"to_lower":                   strings.ToLower,
-		"to_upper":                   strings.ToUpper,
-		"trim_space":                 strings.TrimSpace,
-		"rand_str":                   randstr.Hex,
-		"multiplication_decimal":     MultiplicationDecimal,
-		"multiplication_decimal_fix": MultiplicationDecimalFix,
+		"to_lower":   strings.ToLower,
+		"to_upper":   strings.ToUpper,
+		"trim_space": strings.TrimSpace,
+		"rand_str":   randstr.Hex,
+
+		"multiplication_decimal_string":     MultiplicationDecimalString,
+		"multiplication_decimal_string_fix": MultiplicationDecimalStringFix,
+		"multiplication_decimal":            MultiplicationDecimal,
+		"multiplication_decimal_fix":        MultiplicationDecimalFix,
+
+		"decimal_to_string":   DecimalToString,
+		"decimal_from_string": DecimalFromString,
+
 		"is_dev": func() bool {
 			return cfg.Dev
 		},
@@ -38,11 +45,27 @@ func funcMap(cfg *Config) template.FuncMap {
 	return cFuncMap
 }
 
-func MultiplicationDecimal(n1, n2 string) string {
+func DecimalToString(x decimal.Decimal) string {
+	return x.String()
+}
+
+func DecimalFromString(x string) decimal.Decimal {
+	return decimal.RequireFromString(x)
+}
+
+func MultiplicationDecimal(n1, n2 decimal.Decimal) decimal.Decimal {
+	return n1.Mul(n2)
+}
+
+func MultiplicationDecimalString(n1, n2 string) string {
 	return decimal.RequireFromString(n1).Mul(decimal.RequireFromString(n2)).String()
 }
 
-func MultiplicationDecimalFix(fix int32, n1, n2 string) string {
+func MultiplicationDecimalFix(fix int32, n1, n2 decimal.Decimal) string {
+	return n1.Mul(n2).StringFixedBank(fix)
+}
+
+func MultiplicationDecimalStringFix(fix int32, n1, n2 string) string {
 	return decimal.RequireFromString(n1).Mul(decimal.RequireFromString(n2)).StringFixedBank(fix)
 }
 
